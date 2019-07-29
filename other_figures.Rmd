@@ -1,0 +1,235 @@
+---
+title: "Visual pattern significance - Thesis"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+```{r}
+rm(list=ls())
+library(tidyverse)
+library(plotrix) # ablineclip
+# source("../../../experiments/vispa-kdd-experiments/code/utilities.R")
+source("code/utilities.R")
+source("code/plotting.R")
+DIR_FIGURES <- "../figures"
+```
+
+```{r}
+#' Formatted scatterplot 
+#'
+#' @param x nX2 matrix or data frame
+plott <- function(x, 
+                  xlab="", ylab="", 
+                  bg="darkgray", pch=20, cex = 0.3, 
+                  xaxt="n", yaxt="n", bty="n", 
+                  mar=c(1,1,1,1)+0.1, asp=1, 
+                  tick.num=c(4,4), showAxes=c(T,T), 
+                  xlim=NULL, ylim=NULL,
+                  ...) {
+  if (is.null(xlim)) xlim <- range(x[is.finite(x[,1]), 1])
+  if (is.null(ylim)) ylim <- range(x[is.finite(x[,2]), 2])
+  par(mar=mar)
+  plot(x, xlab=xlab, ylab=ylab, bg=bg, pch=pch, xaxt=xaxt, yaxt=yaxt, cex=cex, asp=asp, bty=bty, xlim=xlim, ylim=ylim, ...)
+  if (showAxes[1]) {
+  axis(side=1,
+       at=seq(from=xlim[1], to=xlim[2], length.out=tick.num[1]),
+       tck=-0.02, labels = F
+  )
+  }
+  
+  if (showAxes[2]) {
+  axis(side=2,
+       at=seq(from=ylim[1], to=ylim[2], length.out=tick.num[2]),
+       tck=-0.02, labels = F
+  )
+  }
+}
+
+#' `abline` with option to put limits to create line segment.
+#'
+#' @param ... 
+#' @param xlim 
+#' @param ylim 
+abline_formatted <- function(..., xlim=NULL, ylim=NULL) {
+  ablineclip(..., 
+             x1=xlim[1], x2=xlim[2], 
+             y1=ylim[1], y2=ylim[2]
+             ) 
+}
+
+#' Wrapper for layout. Lays out multiple plots on a grid. 
+#'
+#' @param ... plots
+#' @param mat matrix. See ?layout. If not provided, plots are arranged vertically.
+#'
+#' @return plot
+arrange.plots <- function(..., mat) {
+  if (missing(mat)) {
+    n <- length(match.call())-1
+    mat<-matrix(1:n, ncol=1) 
+  }
+  layout(mat=mat)
+  for (p in list(...)) {
+    p
+  }
+}
+```
+
+# Anscombe's quartet
+
+```{r}
+ansc <- data.frame(
+  group  = rep(1:4, each = 11),
+  x = unlist(anscombe[,c(1:4)]),
+  y = unlist(anscombe[,c(5:8)]), row.names = NULL
+)
+```
+
+```{r}
+library(xtable)
+
+ansc_tab_data <- select(anscombe, x1,y1, x2,y2, x3,y3, x4,y4)
+
+ansc_tab <- xtable(ansc_tab_data, 
+                   digits=xdigits(ansc_tab_data), 
+                   caption="Anscombe's quartet", 
+                   label="tab:anscombe")
+print(ansc_tab, include.rownames = F)
+
+```
+
+```{r}
+#' Prints a scatterplot of Anscombe's quartet
+#'
+#' @return
+fig_anscombe <- function() {
+  ansc_lm <- lm(y~x, data=ansc[ansc$group == 1, c("x", "y")])
+  ansc_lims <- list(x=range(ansc$x), y=range(ansc$y))
+  
+  plot_anscombe_group <- function(group, title=group) {
+    plott(ansc[ansc$group == group, c("x", "y")], 
+          xlim=ansc_lims$x, 
+          ylim=ansc_lims$y, 
+          main=paste0("Dataset ", group), 
+          cex=0.6, 
+          cex.main=0.7)
+  }
+  
+  arrange.plots(mat=matrix(c(1,2,3,4), ncol=2, nrow=2, byrow = T),
+                plot_anscombe_group(1), 
+                plot_anscombe_group(2), 
+                plot_anscombe_group(3), 
+                plot_anscombe_group(4))
+}
+
+fig_anscombe()
+```
+
+
+```{r}
+savePDF(fig_anscombe(), paste0(DIR_FIGURES, "/anscombe.pdf"), width = 5, height=3)
+```
+
+# p-value 
+
+An empirical and theoretical pvalue.
+
+```{r}
+library(ggplot2)
+set.seed(42)
+d <- data.frame(t=rnorm(1000))
+d <- data.frame(t=rchisq(1000, df = 3))
+t_obs <- quantile(d$t, 0.95)
+d$pos <- factor(ifelse(d$t>=t_obs, "higher", "lower"))
+fig_pvalue <- ggplot(d, aes(x=t)) + theme_minimal()  + 
+  labs(title="") + xlab("") + ylab("") +
+  theme(legend.position = "none", axis.line = element_blank(), 
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(), 
+        axis.ticks.y = element_blank(), axis.text = element_blank()) + 
+  scale_fill_manual(values = c("higher"="black", "lower"="darkgray"))
+
+fig_pvalue_empirical <- fig_pvalue + 
+  geom_histogram(aes(fill=pos), bins=50, boundary=t_obs) + 
+  geom_segment(aes(x = t_obs, xend=t_obs, y=0, yend=Inf), lty=2)
+height_of_analytical <- 0.22 # Adjust so that analytical has same height as empirical.
+fig_pvalue_analytical <- fig_pvalue + 
+  geom_density(fill="black") + 
+  geom_rect(aes(xmin= -Inf, xmax=t_obs, ymin=0, ymax=height_of_analytical), fill="white") + 
+  geom_density(fill="black", alpha=0.3) + 
+  geom_segment(aes(x = t_obs, xend=t_obs, y=0, yend=Inf), lty=2)
+
+fig_pvalue_empirical
+fig_pvalue_analytical
+savePDF(print(fig_pvalue_empirical), paste0(DIR_FIGURES, "/pvalue_empirical.pdf"), width = 5, height=3)
+savePDF(print(fig_pvalue_analytical), paste0(DIR_FIGURES, "/pvalue_analytical.pdf"), width = 5, height=3)
+```
+
+# PCA 2D to 1D
+
+```{r}
+n_points <- 25
+col_fun <- colorRampPalette(RColorBrewer::brewer.pal(5, "Spectral"))
+col <- col_fun(n_points)
+
+set.seed(42)
+df <- scale(data.frame(
+  x = 1:n_points, 
+  y = 1:n_points + rnorm(n_points, sd=5)
+))
+
+df_pca <- princomp(df)
+fig_pca <- function() {
+  plott(df, col=col, cex=1.5, showAxes = c(T, F))
+  abline_formatted(lm(y~x, data=data.frame(x=df[,1], y=df_pca$scores[,1])), 
+                   col="grey", lwd=1, lty=2)
+}
+
+df_pca_proj <- data.frame(x=df_pca$scores[,1], y=rep(1, n_points))
+fig_pca_proj <- function() {
+  plott(df_pca_proj, 
+        col=col, cex=1.5, showAxes = c(T, F))
+  abline_formatted(h=1, 
+                   col="grey", lwd=1, lty=2)
+}
+
+fig_pca()
+fig_pca_proj()
+
+savePDF(fig_pca(), paste0(DIR_FIGURES, "/pca.pdf"), width = 5, height=5)
+savePDF(fig_pca_proj(), paste0(DIR_FIGURES, "/pca_proj.pdf"), width = 5, height=5)
+```
+
+# Misleading trend line
+
+```{r fig.asp=1}
+fig_misleading <- function(asp=1, xlim_scale=0, ...) {
+  set.seed(42)
+  df_misleading <- data.frame(
+    x = 1:100, 
+    y = 1:100 + rnorm(100, sd=10)
+  )
+  plott(df_misleading, 
+        asp=asp, 
+        xlim=c(min(df_misleading$x), 
+               max(df_misleading$x) +
+               xlim_scale*(max(df_misleading$x)-min(df_misleading$x))), 
+        ...)
+  abline_formatted(lm(data=df_misleading, y~x), 
+                   xlim=range(df_misleading$x), 
+                   ylim=range(df_misleading$y), 
+                   lty=2, 
+                   col="grey")
+}
+
+fig_misleading()
+```
+
+```{r eval=FALSE}
+savePDF(fig_misleading(asp=0.1, showAxes=c(T,F)), paste0(DIR_FIGURES, "/misleading-equal-axes.pdf"), width = 10, height=5)
+savePDF(fig_misleading(asp=3, showAxes=c(T,F)), paste0(DIR_FIGURES, "/misleading-unequal-axes.pdf"), width = 2, height=5)
+```

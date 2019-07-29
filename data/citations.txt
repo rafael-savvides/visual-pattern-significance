@@ -1,0 +1,18 @@
+- AirQualityUCI.csv
+S. De Vito, E. Massera, M. Piga, L. Martinotto, and G. Di Francia, “On field calibration of an electronic nose for benzene estimation in an urban pollution monitoring scenario,” Sensors and Actuators B: Chemical, vol. 129, no. 2, pp. 750–757, 2008.
+
+- socio_economics_germany_full.rds
+M. Boley, M. Mampaey, B. Kang, P. Tokmakov, and S. Wrobel, “One click mining—interactive local pattern discovery through implicit preference and performance learning,” in Proceedings of the ACM SIGKDD Workshop on Interactive Data Exploration and Analytics (IDEA), pp. 27–35, ACM, 2013.
+
+- smear_2010.rds
+H. Junninen, A. Lauri, P. Keronen, P. P. Aalto, V. Hiltunen, P. Hari, and M. Kulmala, “Smart-SMEAR: on-line data exploration and visualization tool for SMEAR stations,” in Boreal Environment Research, vol. 14, 2009. 
+
+This dataset is available through a public API (https://avaa.tdata.fi/web/smart/smear/api) using table=HYY_DMPS, from="2010-01-01", to="2010-12-31"
+
+- smear_2010_events.rds
+M. Dal Maso, M. Kulmala, I. Riipinen, R. Wagner, T. Hussein, P. Aalto, and
+K. Lehtinen, “Formation and growth of fresh atmospheric aerosols: eight years
+of aerosol size distribution data from SMEAR II, Hyytiälä, Finland,” Boreal
+Environment Research, vol. 10, no. 5, pp. 323–336, 2005.
+
+This dataset is not public, contact me if you need it.
